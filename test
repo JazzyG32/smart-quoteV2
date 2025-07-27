@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Service Quote Calculator</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --border: #dee2e6;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--secondary);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        
+        label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 16px;
+            box-shadow: var(--shadow);
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .toggle-container label {
+            margin: 0 10px 0 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .materials-section {
+            margin: 30px 0;
+        }
+        
+        .material-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .material-row input {
+            flex: 1;
+        }
+        
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+        
+        .btn-danger {
+            background-color: #e63946;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d00000;
+        }
+        
+        .quote-breakdown {
+            background-color: var(--light);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .quote-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .quote-item:last-child {
+            border-bottom: none;
+        }
+        
+        .total {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: var(--secondary);
+        }
+        
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Rate configuration
+        const rates = {
+            Plumber: {
+                NSW: { "Normal Business Hours": 85, "After Hours": 120, "Saturday": 130, "Sunday": 160, "Public Holiday": 180 },
+                VIC: { "Normal Business Hours": 80, "After Hours": 115, "Saturday": 125, "Sunday": 155, "Public Holiday": 175 },
+                QLD: { "Normal Business Hours": 82, "After Hours": 118, "Saturday": 128, "Sunday": 158, "Public Holiday": 178 },
+                WA: { "Normal Business Hours": 88, "After Hours": 125, "Saturday": 135, "Sunday": 165, "Public Holiday": 185 },
+                SA: { "Normal Business Hours": 84, "After Hours": 120, "Saturday": 130, "Sunday": 160, "Public Holiday": 180 },
+                TAS: { "Normal Business Hours": 81, "After Hours": 117, "Saturday": 127, "Sunday": 157, "Public Holiday": 177 },
+                NT: { "Normal Business Hours": 90, "After Hours": 130, "Saturday": 140, "Sunday": 170, "Public Holiday": 190 }
+            },
+            Electrician: {
+                NSW: { "Normal Business Hours": 90, "After Hours": 130, "Saturday": 140, "Sunday": 170, "Public Holiday": 190 },
+                VIC: { "Normal Business Hours": 85, "After Hours": 125, "Saturday": 135, "Sunday": 165, "Public Holiday": 185 },
+                QLD: { "Normal Business Hours": 87, "After Hours": 128, "Saturday": 138, "Sunday": 168, "Public Holiday": 188 },
+                WA: { "Normal Business Hours": 93, "After Hours": 135, "Saturday": 145, "Sunday": 175, "Public Holiday": 195 },
+                SA: { "Normal Business Hours": 89, "After Hours": 130, "Saturday": 140, "Sunday": 170, "Public Holiday": 190 },
+                TAS: { "Normal Business Hours": 86, "After Hours": 127, "Saturday": 137, "Sunday": 167, "Public Holiday": 187 },
+                NT: { "Normal Business Hours": 95, "After Hours": 135, "Saturday": 145, "Sunday": 175, "Public Holiday": 195 }
+            },
+            Carpenter: {
+                NSW: { "Normal Business Hours": 75, "After Hours": 110, "Saturday": 120, "Sunday": 150, "Public Holiday": 170 },
+                VIC: { "Normal Business Hours": 70, "After Hours": 105, "Saturday": 115, "Sunday": 145, "Public Holiday": 165 },
+                QLD: { "Normal Business Hours": 72, "After Hours": 108, "Saturday": 118, "Sunday": 148, "Public Holiday": 168 },
+                WA: { "Normal Business Hours": 78, "After Hours": 115, "Saturday": 125, "Sunday": 155, "Public Holiday": 175 },
+                SA: { "Normal Business Hours": 74, "After Hours": 110, "Saturday": 120, "Sunday": 150, "Public Holiday": 170 },
+                TAS: { "Normal Business Hours": 71, "After Hours": 107, "Saturday": 117, "Sunday": 147, "Public Holiday": 167 },
+                NT: { "Normal Business Hours": 80, "After Hours": 120, "Saturday": 130, "Sunday": 160, "Public Holiday": 180 }
+            }
+        };
+
+        // Call-out fees configuration
+        const callOutFees = {
+            Plumber: {
+                NSW: 80,
+                VIC: 75,
+                QLD: 78,
+                WA: 85,
+                SA: 79,
+                TAS: 76,
+                NT: 88
+            },
+            Electrician: {
+                NSW: 90,
+                VIC: 85,
+                QLD: 87,
+                WA: 93,
+                SA: 89,
+                TAS: 86,
+                NT: 95
+            },
+            Carpenter: {
+                NSW: 70,
+                VIC: 65,
+                QLD: 67,
+                WA: 73,
+                SA: 69,
+                TAS: 66,
+                NT: 75
+            }
+        };
+
+        const App = () => {
+            // State management
+            const [trade, setTrade] = React.useState('Plumber');
+            const [state, setState] = React.useState('NSW');
+            const [rateType, setRateType] = React.useState('Normal Business Hours');
+            const [includeCallOut, setIncludeCallOut] = React.useState(false);
+            const [hoursWorked, setHoursWorked] = React.useState('');
+            const [wasteDisposal, setWasteDisposal] = React.useState('');
+            const [materials, setMaterials] = React.useState([
+                { description: '', cost: '' },
+                { description: '', cost: '' },
+                { description: '', cost: '' },
+                { description: '', cost: '' }
+            ]);
+
+            // Handle material changes
+            const handleMaterialChange = (index, field, value) => {
+                const updatedMaterials = [...materials];
+                updatedMaterials[index][field] = value;
+                setMaterials(updatedMaterials);
+            };
+
+            // Add new material row
+            const addMaterial = () => {
+                setMaterials([...materials, { description: '', cost: '' }]);
+            };
+
+            // Remove material row
+            const removeMaterial = (index) => {
+                if (materials.length > 1) {
+                    const updatedMaterials = materials.filter((_, i) => i !== index);
+                    setMaterials(updatedMaterials);
+                }
+            };
+
+            // Calculate quote breakdown
+            const calculateQuote = () => {
+                const hourlyRate = rates[trade][state][rateType];
+                const hours = parseFloat(hoursWorked) || 0;
+                const labourCost = hourlyRate * hours;
+                
+                const callOutFee = includeCallOut ? callOutFees[trade][state] : 0;
+                
+                const wasteCost = parseFloat(wasteDisposal) || 0;
+                
+                const materialsTotal = materials.reduce((total, material) => {
+                    return total + (parseFloat(material.cost) || 0);
+                }, 0);
+                
+                const totalCost = labourCost + callOutFee + materialsTotal + wasteCost;
+                
+                return {
+                    labourCost,
+                    callOutFee,
+                    materialsTotal,
+                    wasteCost,
+                    totalCost
+                };
+            };
+
+            const quote = calculateQuote();
+
+            return (
+                <div className="container">
+                    <h1>Trade Service Quote Calculator</h1>
+                    
+                    <div className="form-grid">
+                        <div className="input-group">
+                            <label htmlFor="trade">Trade</label>
+                            <select 
+                                id="trade" 
+                                value={trade} 
+                                onChange={(e) => setTrade(e.target.value)}
+                            >
+                                <option value="Plumber">Plumber</option>
+                                <option value="Electrician">Electrician</option>
+                                <option value="Carpenter">Carpenter/Handyman</option>
+                            </select>
+                        </div>
+                        
+                        <div className="input-group">
+                            <label htmlFor="state">State</label>
+                            <select 
+                                id="state" 
+                                value={state} 
+                                onChange={(e) => setState(e.target.value)}
+                            >
+                                <option value="NSW">NSW</option>
+                                <option value="VIC">VIC</option>
+                                <option value="QLD">QLD</option>
+                                <option value="WA">WA</option>
+                                <option value="SA">SA</option>
+                                <option value="TAS">TAS</option>
+                                <option value="NT">NT</option>
+                            </select>
+                        </div>
+                        
+                        <div className="input-group">
+                            <label htmlFor="rateType">Rate Type</label>
+                            <select 
+                                id="rateType" 
+                                value={rateType} 
+                                onChange={(e) => setRateType(e.target.value)}
+                            >
+                                <option value="Normal Business Hours">Normal Business Hours</option>
+                                <option value="After Hours">After Hours</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                                <option value="Public Holiday">Public Holiday</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div className="input-group">
+                        <label htmlFor="hours">Hours Worked</label>
+                        <input 
+                            type="number" 
+                            id="hours" 
+                            placeholder="Enter hours worked..." 
+                            value={hoursWorked} 
+                            onChange={(e) => setHoursWorked(e.target.value)}
+                            min="0"
+                            step="0.5"
+                        />
+                    </div>
+                    
+                    <div className="input-group">
+                        <label htmlFor="waste">Waste Disposal Cost ($)</label>
+                        <input 
+                            type="number" 
+                            id="waste" 
+                            placeholder="Enter waste disposal cost..." 
+                            value={wasteDisposal} 
+                            onChange={(e) => setWasteDisposal(e.target.value)}
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
+                    
+                    <div className="toggle-container">
+                        <label>Include Call-Out Fee:</label>
+                        <label className="toggle-switch">
+                            <input 
+                                type="checkbox" 
+                                checked={includeCallOut} 
+                                onChange={(e) => setIncludeCallOut(e.target.checked)} 
+                            />
+                            <span className="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div className="materials-section">
+                        <h2>Materials</h2>
+                        {materials.map((material, index) => (
+                            <div className="material-row" key={index}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Description" 
+                                    value={material.description}
+                                    onChange={(e) => handleMaterialChange(index, 'description', e.target.value)}
+                                />
+                                <input 
+                                    type="number" 
+                                    placeholder="Cost ($)" 
+                                    value={material.cost}
+                                    onChange={(e) => handleMaterialChange(index, 'cost', e.target.value)}
+                                    min="0"
+                                    step="0.01"
+                                />
+                                {materials.length > 1 && (
+                                    <button 
+                                        className="btn btn-danger"
+                                        onClick={() => removeMaterial(index)}
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        <button className="btn btn-outline" onClick={addMaterial}>
+                            + Add Material
+                        </button>
+                    </div>
+                    
+                    <div className="quote-breakdown">
+                        <h2>Quote Breakdown</h2>
+                        <div className="quote-item">
+                            <span>Labour Cost:</span>
+                            <span>${quote.labourCost.toFixed(2)}</span>
+                        </div>
+                        {includeCallOut && (
+                            <div className="quote-item">
+                                <span>Call-Out Fee:</span>
+                                <span>${quote.callOutFee.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="quote-item">
+                            <span>Materials Total:</span>
+                            <span>${quote.materialsTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="quote-item">
+                            <span>Waste Disposal:</span>
+                            <span>${quote.wasteCost.toFixed(2)}</span>
+                        </div>
+                        <div className="quote-item total">
+                            <span>Total Cost (excl. GST):</span>
+                            <span>${quote.totalCost.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
